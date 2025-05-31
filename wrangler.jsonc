@@ -9,36 +9,50 @@
 	"compatibility_date": "2025-05-23",
 	"observability": {
 		"enabled": true
-	}
+	},
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */
 	// "placement": { "mode": "smart" },
-
 	/**
 	 * Bindings
 	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
 	 * databases, object storage, AI inference, real-time communication and more.
 	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
 	 */
-
+	"r2_buckets": [
+		{
+			"binding": "R2_BUCKET",
+			"bucket_name": "music",
+		},
+		{
+			"binding": "R2_BUCKET_IMAGES",
+			"bucket_name": "images",
+		}
+	],
 	/**
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
 	 */
 	// "vars": { "MY_VARIABLE": "production_value" },
+	"vars": {
+		"BOT_TOKEN": "<your_bot_token>",
+		"WEBHOOK_SECRET": "<your_webhook_secret>",
+		"USERNAMES": [
+			"fwqaaq"
+		],
+		"LINK": "<your_r2_domain_name>",
+	}
 	/**
 	 * Note: Use secrets to store sensitive data.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
-
 	/**
 	 * Static Assets
 	 * https://developers.cloudflare.com/workers/static-assets/binding/
 	 */
 	// "assets": { "directory": "./public/", "binding": "ASSETS" },
-
 	/**
 	 * Service Bindings (communicate between multiple Workers)
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
