@@ -81,9 +81,6 @@ class StorageManager {
     let cursor: string | undefined = undefined;
     while (turncated) {
       const objects = await config.bucket.list({ ...options, cursor });
-      turncated = objects.truncated;
-      cursor = objects.truncated ? objects.cursor : undefined;
-
       for (const obj of objects.objects) {
         files.push({
           key: obj.key,
@@ -146,10 +143,7 @@ class MessageFormatter {
     return message;
   }
 
-  static format_upload_success(
-    file: UploadResult,
-    file_type: FileType
-  ): string {
+  static format_upload_success(file: UploadResult): string {
     const size_kb = (file.size / 1024).toFixed(2);
     return (
       `文件上传成功！\n\n` +
@@ -255,9 +249,7 @@ class FileUploadHandler {
         'image/jpeg',
         uploader || 'unknown'
       );
-      await c.reply(
-        MessageFormatter.format_upload_success(file_name, FileType.IMAGES)
-      );
+      await c.reply(MessageFormatter.format_upload_success(file_name));
     } catch (error) {
       await c.reply('上传图片时出错，请稍后再试。');
       console.error('Error uploading photo:', error);
@@ -281,9 +273,7 @@ class FileUploadHandler {
         file.mime_type || 'audio/mpeg',
         uploader || 'unknown'
       );
-      await c.reply(
-        MessageFormatter.format_upload_success(file_name, file_type)
-      );
+      await c.reply(MessageFormatter.format_upload_success(file_name));
     } catch (error) {
       await c.reply('上传文件时出错，请稍后再试。');
       console.error('Error uploading media:', error);
