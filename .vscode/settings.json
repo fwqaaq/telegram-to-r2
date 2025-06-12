@@ -1,5 +1,6 @@
 {
-	"files.associations": {
-		"wrangler.json": "jsonc"
-	}
+  "deno.enable": false,
+  "files.associations": {
+    "wrangler.json": "jsonc"
+  }
 }

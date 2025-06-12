@@ -11,11 +11,12 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"@cloudflare/workers-types": "^4.20260408.1",
 		"typescript": "^5.5.2",
 		"vitest": "~3.0.7",
 		"wrangler": "^4.16.1"
 	},
 	"dependencies": {
-		"grammy": "^1.36.1"
+		"grammy": "^1.38.3"
 	}
 }
