@@ -23,12 +23,16 @@
 	 */
 	"r2_buckets": [
 		{
-			"binding": "R2_BUCKET",
-			"bucket_name": "music",
+			"binding": "R2_BUCKET_AUDIO",
+			"bucket_name": "music"
 		},
 		{
-			"binding": "R2_BUCKET_IMAGES",
-			"bucket_name": "images",
+			"binding": "R2_BUCKET_IMAGE",
+			"bucket_name": "images"
+		},
+		{
+			"binding": "R2_BUCKET_DOC",
+			"bucket_name": "document"
 		}
 	],
 	/**
@@ -37,12 +41,16 @@
 	 */
 	// "vars": { "MY_VARIABLE": "production_value" },
 	"vars": {
-		"BOT_TOKEN": "<your_bot_token>",
-		"WEBHOOK_SECRET": "<your_webhook_secret>",
+		"BOT_TOKEN": "<BOT_TOKEN>",
+		"WEBHOOK_SECRET": "<WEBHOOK_SECRET>",
 		"USERNAMES": [
 			"fwqaaq"
 		],
-		"LINK": "<your_r2_domain_name>",
+		"LINK": {
+			"AUDIO": "<AUDIO_LINK>",
+			"IMAGE": "<IMAGE_LINK>",
+			"DOC": "<DOC_LINK>"
+		}
 	}
 	/**
 	 * Note: Use secrets to store sensitive data.
