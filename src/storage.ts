@@ -40,7 +40,10 @@ export default class StorageManager {
     }
   }
 
-  async list_files(file_type: FileType): Promise<FileInfo[]> {
+  async list_files(
+    file_type: FileType,
+    uploaded_by: string,
+  ): Promise<FileInfo[]> {
     const config = this.#get_config(file_type);
     const options = {
       limit: 50,
@@ -52,13 +55,20 @@ export default class StorageManager {
     let cursor: string | undefined = undefined;
     while (turncated) {
       const objects = await config.bucket.list({ ...options, cursor });
-      for (const obj of objects.objects) {
+      for (const { key, size, uploaded, customMetadata } of objects.objects) {
+        if (
+          uploaded_by !== 'all' &&
+          customMetadata?.uploadedBy !== uploaded_by
+        ) {
+          continue;
+        }
+
         files.push({
-          key: obj.key,
-          size: obj.size,
-          uploaded: obj.uploaded.toLocaleString(),
-          author: obj.customMetadata?.uploadedBy || '未知',
-          url: config.base_url.concat(encodeURIComponent(obj.key)),
+          key,
+          size,
+          uploaded: uploaded.toLocaleString(),
+          author: customMetadata?.uploadedBy || '未知',
+          url: config.base_url.concat(encodeURIComponent(key)),
         });
       }
 

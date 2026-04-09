@@ -13,6 +13,8 @@ export interface Env {
   BOT_TOKEN: string;
   WEBHOOK_SECRET: string;
   USERNAMES: string[];
+  ADMIN_USERNAMES: string[];
+  DB: D1Database;
   LINK: LINK;
 }
 

@@ -71,8 +71,11 @@ export class MessageFormatter {
       '/start - 欢迎信息\n' +
       '/help - 帮助信息\n' +
       '/list - 列出存储中的文件\n' +
-      '发送文件将自动上传到 R2 存储（示例：/list images）\n' +
-      '/delete - 删除存储中的文件\n'
+      '发送文件将自动上传到 R2 存储（示例：/list images <username>?）\n' +
+      '/delete - 删除存储中的文件（示例：/delete key）\n' +
+      '管理员命令:\n' +
+      '/block - 封禁用户（示例：/block @username 或 回复用户消息并发送 /block）\n' +
+      '/unblock - 解封用户（示例：/unblock @username 或 回复用户消息并发送 /unblock）'
     );
   }
 }

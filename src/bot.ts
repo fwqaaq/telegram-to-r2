@@ -2,6 +2,12 @@ import { Bot, GrammyError, type Context } from 'grammy';
 import StorageManager from './storage';
 import { type Env, FileType, type UploadedFileInfo } from './type';
 import { MessageFormatter } from './utils';
+import {
+  block_user,
+  is_user_banned,
+  list_blocked_users,
+  unblock_user,
+} from './db';
 
 /**
  * Command handler for bot basic commands.
@@ -10,14 +16,26 @@ import { MessageFormatter } from './utils';
 class BotCommandHandler {
   constructor(private storage: StorageManager) {}
   setup_commands(bot: Bot) {
-    bot.command('start', (c) => c.reply('Welcome! I am a cloudflare R2 bot!'));
+    bot.command('start', (c) =>
+      c.reply(
+        'Welcome! I am a cloudflare R2 bot! https://github.com/fwqaaq/telegram-to-r2',
+      ),
+    );
     bot.command('help', (c) => c.reply(MessageFormatter.get_help_message()));
     bot.command('list', async (c) => {
-      // default to audio
-      const param = c.match || 'audio';
+      const current_username = c.from?.username?.toLowerCase();
+
+      if (!current_username) {
+        return await c.reply('无法获取您的用户名，无法执行列出文件操作。');
+      }
+
+      // If target_user is not provided, default to current user
+      const [resource_name = 'audio', target_user = current_username] = c.match
+        ?.trim()
+        .split(/\s+/);
 
       let file_type: FileType;
-      switch (param) {
+      switch (resource_name) {
         case 'audio':
           file_type = FileType.MUSIC;
           break;
@@ -29,13 +47,24 @@ class BotCommandHandler {
           break;
         default:
           return await c.reply(
-            '无效的参数。请使用 /list audio 或 /list images 或 /list documents 来列出相应类型的文件。',
+            '无效的参数。请使用 /list audio <username> 或 /list images <username> 或 /list documents <username> 来列出相应类型的文件（仅管理员可以查看其他用户的文件列表）。',
           );
       }
-      const files = await this.storage.list_files(file_type);
+
+      // Permission check: only allow users to list their own files.
+      const is_admin =
+        current_username && c.env.ADMIN_USERNAMES.includes(current_username);
+
+      // If current user is not admin and checking other user's files, reject the request
+      if (!is_admin && target_user !== current_username) {
+        return await c.reply('⚠️ 您没有权限查看其他用户的文件列表。');
+      }
+
+      const files = await this.storage.list_files(file_type, target_user);
       const message = MessageFormatter.format_file_list(files, file_type);
       await c.reply(message, { parse_mode: 'MarkdownV2' });
     });
+
     bot.command('delete', async (c) => {
       if (!c.message?.text) {
         return await c.reply(
@@ -63,6 +92,23 @@ class BotCommandHandler {
           const obj = await bucket.get(key);
           found = !!obj || found;
           if (obj) {
+            const uploadedBy = obj.customMetadata?.uploadedBy.toLowerCase();
+
+            const current_username = c.from?.username?.toLowerCase();
+
+            if (!current_username) {
+              return await c.reply('无法获取您的用户名，无法执行删除操作。');
+            }
+
+            const is_admin =
+              current_username &&
+              c.env.ADMIN_USERNAMES.includes(current_username);
+
+            // Permission check: only allow users to delete their own files.
+            if (!is_admin && uploadedBy !== current_username) {
+              return await c.reply('⚠️ 您没有权限删除其他用户的文件。');
+            }
+
             await bucket.delete(key);
             await c.reply(`文件 ${key} 已成功删除。`);
           }
@@ -76,10 +122,115 @@ class BotCommandHandler {
       }
     });
     bot.command('block', async (c) => {
-      if (!c.from?.username) {
-        return await c.reply('无法获取您的用户名，无法执行封禁操作。');
+      const current_username = c.from?.username?.toLowerCase();
+
+      // Permission check: only allow admins to block users.
+      if (
+        !current_username ||
+        !c.env.ADMIN_USERNAMES.includes(current_username)
+      ) {
+        return await c.reply('⚠️ 只有管理员可以使用 /block 命令。');
       }
-      //TODO: implement block user logic
+
+      const target = {} as { chat_id?: number; username?: string };
+
+      // Block by replying to a user's message
+      if (c.message?.reply_to_message?.from) {
+        const user = c.message.reply_to_message.from;
+        target.chat_id = user.id;
+        target.username = user.username?.toLowerCase();
+      } else {
+        // Block by /block username
+        if (!c.match)
+          return await c.reply('请提供要封禁的用户名，例如：/block username');
+        const username = c.match.trim().toLowerCase();
+        target.username = username.replace(/^@/, ''); // Remove @ if provided
+        // Get chat_id from username if possible (optional, for better blocking)
+        try {
+          const chat = await c.api.getChat(`@${target.username}`);
+          target.chat_id = chat.id;
+        } catch (e) {
+          console.warn(
+            `无法获取用户 ${target.username} 的 chat_id，封禁将仅基于用户名进行。`,
+          );
+        }
+      }
+
+      try {
+        await block_user(c.env.DB, target);
+        const displayName = target.username
+          ? `@${target.username}`
+          : `ID: ${target.chat_id}`;
+        await c.reply(`✅ 已成功封禁 ${displayName}`);
+      } catch (e) {
+        console.error('Error blocking user:', e);
+        await c.reply('封禁用户时发生错误，请稍后再试。' + e);
+      }
+    });
+
+    bot.command('unblock', async (c) => {
+      const current_username = c.from?.username?.toLowerCase();
+
+      // Permission check: only allow admins to unblock users.
+      if (
+        !current_username ||
+        !c.env.ADMIN_USERNAMES.includes(current_username)
+      ) {
+        return await c.reply('⚠️ 只有管理员可以使用 /unblock 命令。');
+      }
+
+      const target = {} as { identifier: string | number };
+
+      // Block by replying to a user's message
+      if (c.message?.reply_to_message?.from) {
+        const user = c.message.reply_to_message.from;
+
+        target.identifier = user.id;
+      } else {
+        // Unblock by /unblock username
+        if (!c.match)
+          return await c.reply('请提供要解封的用户名，例如：/unblock username');
+        const username = c.match.trim().replace(/^@/, '').toLowerCase();
+        target.identifier = username;
+      }
+
+      try {
+        await unblock_user(c.env.DB, target.identifier);
+        await c.reply(`✅ 已成功解封 ${target.identifier}`);
+      } catch (e) {
+        console.error('Error unblocking user:', e);
+        await c.reply('解封用户时发生错误，请稍后再试。');
+      }
+    });
+
+    // list all blocked users (admin only)
+    bot.command('list_blocked', async (c) => {
+      const current_username = c.from?.username?.toLowerCase();
+
+      // Permission check: only allow admins to list blocked users.
+      if (
+        !current_username ||
+        !c.env.ADMIN_USERNAMES.includes(current_username)
+      ) {
+        return await c.reply('⚠️ 只有管理员可以使用 /list_blocked 命令。');
+      }
+
+      try {
+        const blockedUsers = await list_blocked_users(c.env.DB);
+        if (blockedUsers.length === 0) {
+          return await c.reply('当前没有被封禁的用户。');
+        }
+        let message = '🚫 *被封禁的用户列表:*\n\n';
+        for (const user of blockedUsers) {
+          const identifier =
+            `${user.username && '@' + user.username} ${user.chat_id && `(ID: ${user.chat_id})`}`.trim();
+          message += `- ${identifier}\n`;
+        }
+        await c.reply(message, { parse_mode: 'MarkdownV2' });
+      } catch (e) {
+        console.error('Error listing blocked users:', e);
+        await c.reply('列出被封禁用户时发生错误，请稍后再试。');
+      }
     });
   }
 }
@@ -187,7 +338,7 @@ class FileUploadHandler {
     if (!file) return;
 
     // Get uploader information
-    const uploader = c.from?.username || 'unknown';
+    const uploader = c.from?.username?.toLowerCase() || 'unknown';
     const uploaded_information: UploadedFileInfo = {
       key,
       file_type,
@@ -204,7 +355,7 @@ class FileUploadHandler {
     } catch (err) {
       console.error('[Error uploading file to R2]:', err);
       await c.reply(
-        '上传文件时出错，请稍后再试。如果问题持续存在，请将问题报告到 https://github.com/fwqaaq/telegram-to-r2。',
+        `上传文件时出错（${(err as Error).message}）。如果问题持续存在，请将问题报告到 https://github.com/fwqaaq/telegram-to-r2。`,
       );
     }
   }
@@ -259,12 +410,23 @@ export class TelegramBotBuilder {
 
   with_authorization() {
     this.#bot.use(async (c, next) => {
-      if (
-        c.env.USERNAMES[0] !== '*' &&
-        (!c.from?.username || !c.env.USERNAMES.includes(c.from.username))
-      ) {
-        return await c.reply(`Unauthorized user: ${c.from?.username}`);
+      const current_username = c.from?.username?.toLowerCase();
+
+      const chat_id = c.from?.id;
+
+      try {
+        const is_banned = await is_user_banned(
+          c.env.DB,
+          chat_id,
+          current_username,
+        );
+        if (is_banned) {
+          return await c.reply('🚫 您的账号已被系统封禁，无法使用此机器人。');
+        }
+      } catch (e) {
+        console.error('D1 Blacklist check failed:', e);
       }
+
       return await next();
     });
 
