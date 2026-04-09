@@ -110,3 +110,4 @@ https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=<YOUR_WORKER_URL>&secret_
 欢迎通过 Issue 反馈 Bug 或提交 PR 完善功能。
 
 - GitHub: <https://github.com/fwqaaq/telegram-to-r2>
+- 测试账号: [@test_telegram_r2_bot](https://t.me/test_telegram_r2_bot)

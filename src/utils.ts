@@ -75,7 +75,8 @@ export class MessageFormatter {
       '/delete - 删除存储中的文件（示例：/delete key）\n' +
       '管理员命令:\n' +
       '/block - 封禁用户（示例：/block @username 或 回复用户消息并发送 /block）\n' +
-      '/unblock - 解封用户（示例：/unblock @username 或 回复用户消息并发送 /unblock）'
+      '/unblock - 解封用户（示例：/unblock @username 或 回复用户消息并发送 /unblock）\n' +
+      '/list_blocked - 列出被封禁的用户\n'
     );
   }
 }

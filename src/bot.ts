@@ -220,13 +220,15 @@ class BotCommandHandler {
         if (blockedUsers.length === 0) {
           return await c.reply('当前没有被封禁的用户。');
         }
-        let message = '🚫 *被封禁的用户列表:*\n\n';
+        let message = '🚫 *被封禁的用户列表*: \n\n';
         for (const user of blockedUsers) {
           const identifier =
-            `${user.username && '@' + user.username} ${user.chat_id && `(ID: ${user.chat_id})`}`.trim();
+            `用户名：${user.username && '@' + user.username} 用户 chat_id: ${user.chat_id && `(ID: ${user.chat_id})`}`.trim();
           message += `- ${identifier}\n`;
         }
-        await c.reply(message, { parse_mode: 'MarkdownV2' });
+        await c.reply(MessageFormatter.escapeMd(message), {
+          parse_mode: 'MarkdownV2',
+        });
       } catch (e) {
         console.error('Error listing blocked users:', e);
         await c.reply('列出被封禁用户时发生错误，请稍后再试。');
