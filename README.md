@@ -1,123 +1,112 @@
-# telegram-to-r2
+# 🤖 Telegram to R2 Bot
 
-> 使用 Cloudflare Workers + R2 的 Telegram Bot
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![Drizzle ORM](https://img.shields.io/badge/Drizzle-ORM-C5F74F?style=for-the-badge&logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
+[![grammY](https://img.shields.io/badge/grammY-Framework-32ADFF?style=for-the-badge&logo=telegram&logoColor=white)](https://grammy.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-这个项目实现了一个基于 `grammy` 的 Telegram
-机器人。机器人接收用户发送的媒体（音频、图片/视频、文档），并将文件上传到你在
-Cloudflare R2 中配置的不同
-Bucket。它还提供列举和删除文件的命令，并且支持基于用户名的访问控制。
+> **极简、高效、安全的 Telegram 媒体存储方案。**
+>
+> 基于 Cloudflare Workers + R2 的免费额度，搭建属于你个人的“私人云盘” Telegram 机器人。
 
-## **主要功能**
+---
 
-- 接收并上传：自动上传音频、图片/视频、文档到 R2
-- 列表：通过 `/list audio|images|documents <username>` 命令列出指定类型的文件，只有管理员可以查看其他用户的文件列表，并且默认只列出自己的文件
-- 删除：通过 `/delete <key>` 删除指定文件
-- 权限控制：仅允许 `USERNAMES` 列表中的用户使用机器人
+## ✨ 主要功能
 
-## **仓库结构（重要文件）**
+- 🚀 **媒体自动同步**：直接向 Bot 发送音频、图片、视频、文档，自动流式上传至 R2。
+- 📂 **智能路径分类**：根据文件类型自动归档到不同的 R2 Bucket 路径。
+- 🛡️ **双重权限控制**：
+  - **白名单制**：通过环境变量 `USERNAMES` 限制初始访问。
+  - **黑名单制**：集成 D1 数据库，支持管理员通过 `/block` 实时封禁恶意用户。
+- 🔍 **管理便捷**：
+  - `/list`：支持 MarkdownV2 渲染，分类列出文件（管理员可跨用户查看）。
+  - `/delete`：一键清理 R2 存储中的对象。
+- ⚡ **极致性能**：依托 Cloudflare 全球边缘网络，低延迟，冷启动极速。
 
-- `src/`: 源代码
-- `src/bot.ts`: bot 逻辑与处理器
-- `src/storage.ts`: R2 存储封装
-- `src/type.ts`: 类型定义
-- `src/utils.ts`: 消息格式化等工具
-- `wrangler.jsonc`: Cloudflare Worker 绑定与环境配置
+---
 
-## **运行与部署**
+## 🏗️ 目录结构
 
-开发（本地）
+```text
+src/
+├── db/              # 🗄️ 数据库相关
+│   ├── schema.ts    # 表结构定义 (Drizzle)
+│   └── index.ts   # 封装的增删改查逻辑 (如 is_user_banned)
+├── bot.ts           # 🤖 Bot 核心逻辑与中间件 (Authorization/Commands)
+├── index.ts         # 🚀 Worker 入口，处理请求与响应
+├── storage.ts       # 📦 R2 桶操作封装
+├── type.ts          # 📝 全局类型声明
+└── utils.ts         # 🛠️ MarkdownV2 格式化与辅助函数
+```
 
-1. 安装依赖：
+## 🛠️ 环境配置
+
+### 1. 环境准备
 
 ```bash
+# 1. 克隆仓库后安装依赖
 pnpm install
+
+# 2. 登录 Cloudflare 账号
+pnpm wrangler login
 ```
 
-1. 启动本地开发服务器（使用 wrangler）：
+### 2. 数据库初始化
 
 ```bash
-pnpm run dev
+# 1. 配置 .env 文件，设置 CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_DATABASE_ID 和 CLOUDFLARE_D1_TOKEN 环境变量
+
+# 2. 将表结构应用到远端 D1 数据库
+pnpm run db:push
 ```
 
-部署到 Cloudflare Workers：
+### 3. 配置 wrangler.jsonc
+
+### 3. 配置环境变量
+
+修改 `wrangler.jsonc` 或在 Cloudflare 控制台配置以下变量：
+
+| 变量名 | 必填 | 示例/说明 |
+| :--- | :--- | :--- |
+| `BOT_TOKEN` | ✅ | 从 [@BotFather](https://t.me/botfather) 获取的 Bot API Token |
+| `ADMIN_USERNAMES` | ✅ | 设置管理员用户 |
+| `WEBHOOK_SECRET` | ✅ | 自定义的 Webhook 安全校验密钥，建议使用长随机字符串 |
+| `LINK` | ✅ | 映射到 R2 的访问域名对象，例如：`{"AUDIO": "https://pub-xxx.r2.dev/audio", "IMAGE": "...", "DOC": "..."}` |
+| `DB` | ✅ | Cloudflare D1 数据库绑定名称 (需在 wrangler.jsonc 中配置 binding) |
+
+## 🎮 指令指南
+
+| 命令 | 权限 | 功能描述 |
+| :--- | :--- | :--- |
+| `/start` | 已授权用户 | 机器人初始化欢迎信息 |
+| `/list <type>` | 已授权用户 | 列出自己的 `audio` \| `images` \| `documents` |
+| `/list <type> all` | 管理员 | 列出所有用户在该分类下的上传文件 |
+| `/delete <key>` | 已授权用户 | 从 R2 中彻底删除指定文件 |
+| `/block` | 管理员 | **回复消息**或**跟随用户名**，将该用户永久封禁 |
+| `(直接发送媒体)` | 已授权用户 | 自动触发上传，成功后返回 MarkdownV2 详情卡片 |
+
+## 🛠️ 部署流程
+
+### 1. 执行部署
+
+使用 wrangler 将项目发布到 Cloudflare 全球边缘网络：
 
 ```bash
 pnpm run deploy
 ```
 
-（注：具体脚本请查看 `package.json`）
-
-配置（`wrangler.jsonc` / Worker 环境变量）
-
-- `BOT_TOKEN` — 你的 Telegram Bot Token
-- `WEBHOOK_SECRET` — 用于 Telegram webhook 的 secret token（与 `setWebhook` 的
-  `secret_token` 保持一致）
-- `USERNAMES` — 允许使用 bot 的用户名列表（逗号分隔），或者使用 `*` 允许所有用户
-- `R2_BUCKET_AUDIO`、`R2_BUCKET_IMAGE`、`R2_BUCKET_DOC` — 在 Worker 中绑定的 R2
-  bucket
-- `LINK` — 一个对象，包含每类文件对应的基础 URL，例如 `LINK.AUDIO`,
-  `LINK.IMAGE`, `LINK.DOC` 等
-
-示例（概念）:
-
-```jsonc
-{
-  "env": {
-    "BOT_TOKEN": "your_bot_token",
-    "WEBHOOK_SECRET": "your_webhook_secret",
-    "USERNAMES": "alice,bob",
-    "LINK": {
-      "AUDIO": "https://<your-r2-endpoint>/audio",
-      "IMAGE": "https://<your-r2-endpoint>/images",
-      "DOC": "https://<your-r2-endpoint>/docs"
-    }
-  },
-  "bindings": [
-    {
-      "name": "R2_BUCKET_AUDIO",
-      "bucket_name": "audio-bucket"
-    },
-    {
-      "name": "R2_BUCKET_IMAGE",
-      "bucket_name": "image-bucket"
-    },
-    {
-      "name": "R2_BUCKET_DOC",
-      "bucket_name": "doc-bucket"
-    }
-  ]
-}
-```
-
-设置 Telegram webhook（示例）
+### 2. 配置 Telegram Webhook
 
 ```text
-https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=<YOUR_WORKER_URL>&secret_token=<YOUR_SECRET_TOKEN>
+https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=<YOUR_WORKER_URL>&secret_token=<WEBHOOK_SECRET>
 ```
 
-替换 `<YOUR_WORKER_URL>` 与 `BOT_TOKEN`、`YOUR_SECRET_TOKEN` 为实际值。
+- `<BOT_TOKEN>`: 你的机器人 Token。
+- `<YOUR_WORKER_URL>`: 部署成功后 Cloudflare 提供的 .workers.dev 域名地址。
+- `<WEBHOOK_SECRET>`: 必须与你环境变量中的 WEBHOOK_SECRET 保持一致，用于校验请求来源。
 
-使用说明（Telegram 命令）
+## 🤝 贡献与反馈
 
-- `/start` — 欢迎信息
-- `/help` — 帮助信息
-- `/list audio|images|documents` — 列出对应类型的文件（如 `/list images`）
-- 直接向 bot 发送音频/图片/文档 — 自动上传到 R2
-- `/delete <key>` — 删除存储中指定 key 的文件
+欢迎通过 Issue 反馈 Bug 或提交 PR 完善功能。
 
-注意事项
-
-- 确保 `USERNAMES` 配置正确，机器人在 `with_authorization()`
-  中会拒绝未授权用户。
-- `LINK` 中的 URL 用于生成可访问链接；请确保这些 URL 指向你可公开访问的对象 URL
-  或 CDN。
-- 文件名会被用作 R2 中的对象 key，请避免重复 key 或手动检查覆盖策略。
-
-调试与日志
-
-- Worker 中的异常会打印到 Cloudflare Worker
-  日志中。上传或删除失败时，机器人会将失败提示回复给用户。
-
-贡献 & 问题反馈
-
-- 欢迎提交 Issue 或 PR： <https://github.com/fwqaaq/telegram-to-r2>
+- GitHub: <https://github.com/fwqaaq/telegram-to-r2>

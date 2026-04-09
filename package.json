@@ -4,6 +4,7 @@
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",
+		"db:push": "npx drizzle-kit push --config ./drizzle.config.ts",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",
