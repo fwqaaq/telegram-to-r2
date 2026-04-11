@@ -40,7 +40,8 @@ export class MessageFormatter {
       message += `├ 👤 *上传者:* ${this.escapeMd(file.author)}\n`;
       message += `├ 📏 *大小:* ${this.escapeMd(sizeStr)} KB\n`;
       message += `├ 🕒 *时间:* ${this.escapeMd(dateStr)}\n`;
-      message += `└ 🔗 [查看文件](${file.url})\n\n`;
+      const escaped_url = file.url.replace(/[)\\]/g, '\\$&');
+      message += `└ 🔗 [查看文件](${escaped_url})\n\n`;
     }
 
     return message;
@@ -70,8 +71,7 @@ export class MessageFormatter {
       '可用命令:\n' +
       '/start - 欢迎信息\n' +
       '/help - 帮助信息\n' +
-      '/list - 列出存储中的文件\n' +
-      '发送文件将自动上传到 R2 存储（示例：/list images <username>?）\n' +
+      '/list - 列出存储中的文件（示例：/list -t music）\n' +
       '/delete - 删除存储中的文件（示例：/delete key）\n' +
       '管理员命令:\n' +
       '/block - 封禁用户（示例：/block @username 或 回复用户消息并发送 /block）\n' +
@@ -79,4 +79,21 @@ export class MessageFormatter {
       '/list_blocked - 列出被封禁的用户\n'
     );
   }
+}
+
+/**
+ * Parse command arguments in the format: -t(ype) value -u(username) value
+ * Example: -t music -u fwqaaq
+ * Returns: { t: 'music', u: 'fwqaaq' }
+ * @param text string
+ */
+export function arguments_parser(text: string) {
+  const args: Record<string, string> = {};
+  const regex = /-([a-zA-Z])\s+([^\s-]+)/g;
+
+  let m;
+  while ((m = regex.exec(text)) !== null) {
+    args[m[1]] = m[2];
+  }
+  return args;
 }

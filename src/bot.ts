@@ -1,7 +1,7 @@
 import { Bot, GrammyError, type Context } from 'grammy';
 import StorageManager from './storage';
 import { type Env, FileType, type UploadedFileInfo } from './type';
-import { MessageFormatter } from './utils';
+import { arguments_parser, MessageFormatter } from './utils';
 import {
   block_user,
   is_user_banned,
@@ -29,27 +29,13 @@ class BotCommandHandler {
         return await c.reply('无法获取您的用户名，无法执行列出文件操作。');
       }
 
-      // If target_user is not provided, default to current user
-      const [resource_name = 'audio', target_user = current_username] = c.match
-        ?.trim()
-        .split(/\s+/);
+      // Parse command arguments
+      const raw_args = c.match?.trim() || '';
+      const args = arguments_parser(raw_args);
 
-      let file_type: FileType;
-      switch (resource_name) {
-        case 'audio':
-          file_type = FileType.MUSIC;
-          break;
-        case 'images':
-          file_type = FileType.IMAGES;
-          break;
-        case 'documents':
-          file_type = FileType.DOCUMENTS;
-          break;
-        default:
-          return await c.reply(
-            '无效的参数。请使用 /list audio <username> 或 /list images <username> 或 /list documents <username> 来列出相应类型的文件（仅管理员可以查看其他用户的文件列表）。',
-          );
-      }
+      // Get file type and target user from arguments
+      const resource_name = args['t'] || args['type'] || 'all'; // default to all
+      const target_user = args['u'] || args['username'] || current_username; // default to self
 
       // Permission check: only allow users to list their own files.
       const is_admin =
@@ -60,65 +46,57 @@ class BotCommandHandler {
         return await c.reply('⚠️ 您没有权限查看其他用户的文件列表。');
       }
 
+      let file_type: FileType;
+      switch (resource_name) {
+        case 'music':
+          file_type = FileType.MUSIC;
+          break;
+        case 'images':
+          file_type = FileType.IMAGES;
+          break;
+        case 'documents':
+          file_type = FileType.DOCUMENTS;
+          break;
+        case 'all':
+          file_type = FileType.NULL;
+          break;
+        default:
+          return await c.reply(
+            '无效的参数。请使用 -t(ype) 参数指定资源类型，支持 music, images, documents, null。例如：/list -t music -u fwqaaq',
+          );
+      }
+
       const files = await this.storage.list_files(file_type, target_user);
+
       const message = MessageFormatter.format_file_list(files, file_type);
       await c.reply(message, { parse_mode: 'MarkdownV2' });
     });
 
     bot.command('delete', async (c) => {
-      if (!c.message?.text) {
-        return await c.reply(
-          '请使用 /delete 命令来删除文件（参数是你的 key），例如：/delete filename.txt',
-        );
-      }
-      const key = c.match;
+      const key = c.match?.trim();
+      if (!key)
+        return await c.reply('请输入完整的 Key，例如: fwqaaq/music/test.mp3');
 
-      if (!key) {
-        return await c.reply(
-          '请提供要删除的文件名，例如：/delete filename.txt',
-        );
-      }
-
-      const buckets = [
-        c.env.R2_BUCKET_AUDIO,
-        c.env.R2_BUCKET_IMAGE,
-        c.env.R2_BUCKET_DOC,
-      ];
+      const current_username = c.from?.username?.toLowerCase();
+      if (!current_username) return;
 
       try {
-        let found = false;
-        // Try to delete from all buckets
-        for await (const bucket of buckets) {
-          const obj = await bucket.get(key);
-          found = !!obj || found;
-          if (obj) {
-            const uploadedBy = obj.customMetadata?.uploadedBy.toLowerCase();
+        const obj = await c.env.R2_BUCKET.head(key); // 先获取元数据检查权限
+        if (!obj) return await c.reply('未找到该文件。');
 
-            const current_username = c.from?.username?.toLowerCase();
+        const is_admin = c.env.ADMIN_USERNAMES.includes(current_username);
 
-            if (!current_username) {
-              return await c.reply('无法获取您的用户名，无法执行删除操作。');
-            }
-
-            const is_admin =
-              current_username &&
-              c.env.ADMIN_USERNAMES.includes(current_username);
-
-            // Permission check: only allow users to delete their own files.
-            if (!is_admin && uploadedBy !== current_username) {
-              return await c.reply('⚠️ 您没有权限删除其他用户的文件。');
-            }
-
-            await bucket.delete(key);
-            await c.reply(`文件 ${key} 已成功删除。`);
-          }
+        // 鉴权：除非是管理员，否则只能删除路径前缀属于自己的文件
+        if (!is_admin && !key.startsWith(`${current_username}/`)) {
+          return await c.reply('⚠️ 您没有权限删除该文件。');
         }
-        if (!found) {
-          await c.reply(`未找到文件 ${key}，请输入正确的文件 key。`);
-        }
+
+        await c.env.R2_BUCKET.delete(key);
+        await c.reply(`✅ 文件 \`${key}\` 已成功删除。`, {
+          parse_mode: 'MarkdownV2',
+        });
       } catch (error) {
-        console.error(error);
-        await c.reply(`删除文件 ${key} 时出错，请检查文件名是否正确。`);
+        await c.reply('❌ 删除失败，请确保 Key 正确。');
       }
     });
     bot.command('block', async (c) => {

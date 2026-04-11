@@ -1,1 +1,3 @@
-npx wrangler d1 execute for_telegram_r2 --remote --file=./src/schema/schema.sql
+npx wrangler r2 bucket create test-for-telegram-r2
+
+npx wrangler d1 create test_telegram_r2

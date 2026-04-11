@@ -6,22 +6,21 @@ export interface LINK {
 }
 
 export interface Env {
-  R2_BUCKET_AUDIO: R2Bucket;
-  R2_BUCKET_IMAGE: R2Bucket;
-  R2_BUCKET_DOC: R2Bucket;
+  R2_BUCKET: R2Bucket;
+  BASE_URL: string;
 
   BOT_TOKEN: string;
   WEBHOOK_SECRET: string;
   USERNAMES: string[];
   ADMIN_USERNAMES: string[];
   DB: D1Database;
-  LINK: LINK;
 }
 
 export enum FileType {
   MUSIC = 'music',
   IMAGES = 'images',
   DOCUMENTS = 'documents',
+  NULL = 'null', // All files without specific type
 }
 
 export interface StorageConfig {

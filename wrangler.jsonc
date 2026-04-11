@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "telegram-to-r2",
+	"name": "test-telegram-to-r2",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-05-23",
 	"observability": {
@@ -23,16 +23,9 @@
 	 */
 	"r2_buckets": [
 		{
-			"binding": "R2_BUCKET_AUDIO",
-			"bucket_name": "music"
-		},
-		{
-			"binding": "R2_BUCKET_IMAGE",
-			"bucket_name": "images"
-		},
-		{
-			"binding": "R2_BUCKET_DOC",
-			"bucket_name": "document"
+			"binding": "R2_BUCKET",
+			"bucket_name": "<BUCKET_NAME>",
+			"remote": true
 		}
 	],
 	/**
@@ -41,22 +34,18 @@
 	 */
 	// "vars": { "MY_VARIABLE": "production_value" },
 	"vars": {
-		"BOT_TOKEN": "<TELEGRAM_BOT_TOKEN>",
+		"BOT_TOKEN": "<BOT_TOKEN>",
 		"WEBHOOK_SECRET": "<WEBHOOK_SECRET>",
 		"ADMIN_USERNAMES": [
 			"fwqaaq"
 		],
-		"LINK": {
-			"AUDIO": "<AUDIO_LINK>",
-			"IMAGE": "<IMAGE_LINK>",
-			"DOC": "<DOC_LINK>"
-		}
+		"BASE_URL": "<BASE_URL>",
 	},
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "<CLOUDFLARE_DATABASE_NAME>",
-			"database_id": "<CLOUDFLARE_DATABASE_ID>",
+			"database_name": "<DATABASE_NAME>",
+			"database_id": "<DATABASE_ID>",
 		}
 	]
 	/**

@@ -31,7 +31,7 @@
 src/
 ├── db/              # 🗄️ 数据库相关
 │   ├── schema.ts    # 表结构定义 (Drizzle)
-│   └── index.ts   # 封装的增删改查逻辑 (如 is_user_banned)
+│   └── index.ts     # 封装的增删改查逻辑 (如 is_user_banned)
 ├── bot.ts           # 🤖 Bot 核心逻辑与中间件 (Authorization/Commands)
 ├── index.ts         # 🚀 Worker 入口，处理请求与响应
 ├── storage.ts       # 📦 R2 桶操作封装
@@ -51,7 +51,20 @@ pnpm install
 pnpm wrangler login
 ```
 
-### 2. 数据库初始化
+### 2. bucket 和 D1 数据库创建
+
+```bash
+# 1. 创建 R2 Bucket（示例命令，替换为实际名称）
+npx wrangler r2 bucket create test-for-telegram-r2
+# 2. 创建 D1 数据库
+npx wrangler d1 create test_telegram_r2
+```
+
+> ![NOTE]
+>
+>将 `wrangler.toml` 中的 `r2_buckets` 中的 `bucket_name` 和 `d1_databases` 中的 `database_name` 和 `database_id` 替换为你实际创建的资源名称。
+
+### 3. 数据库初始化
 
 ```bash
 # 1. 配置 .env 文件，设置 CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_DATABASE_ID 和 CLOUDFLARE_D1_TOKEN 环境变量
@@ -64,14 +77,14 @@ pnpm run db:push
 
 ### 3. 配置环境变量
 
-修改 `wrangler.jsonc` 或在 Cloudflare 控制台配置以下变量：
+修改 [`wrangler.jsonc`](./wrangler.jsonc) 或在 Cloudflare 控制台配置以下变量：
 
 | 变量名 | 必填 | 示例/说明 |
 | :--- | :--- | :--- |
 | `BOT_TOKEN` | ✅ | 从 [@BotFather](https://t.me/botfather) 获取的 Bot API Token |
 | `ADMIN_USERNAMES` | ✅ | 设置管理员用户 |
 | `WEBHOOK_SECRET` | ✅ | 自定义的 Webhook 安全校验密钥，建议使用长随机字符串 |
-| `LINK` | ✅ | 映射到 R2 的访问域名对象，例如：`{"AUDIO": "https://pub-xxx.r2.dev/audio", "IMAGE": "...", "DOC": "..."}` |
+| `BASE_URL` | ✅ | 映射到 R2 的访问域名 |
 | `DB` | ✅ | Cloudflare D1 数据库绑定名称 (需在 wrangler.jsonc 中配置 binding) |
 
 ## 🎮 指令指南
@@ -79,10 +92,11 @@ pnpm run db:push
 | 命令 | 权限 | 功能描述 |
 | :--- | :--- | :--- |
 | `/start` | 已授权用户 | 机器人初始化欢迎信息 |
-| `/list <type>` | 已授权用户 | 列出自己的 `audio` \| `images` \| `documents` |
-| `/list <type> all` | 管理员 | 列出所有用户在该分类下的上传文件 |
+| `/list -t <type> -u <username>` | 已授权用户 | 列出 `audio` \| `images` \| `documents` |
 | `/delete <key>` | 已授权用户 | 从 R2 中彻底删除指定文件 |
 | `/block` | 管理员 | **回复消息**或**跟随用户名**，将该用户永久封禁 |
+| `/unblock` | 管理员 | **回复消息**或**跟随用户名**，解除封禁 |
+| `/list_blocked` | 管理员 | 列出所有被封禁的用户 |
 | `(直接发送媒体)` | 已授权用户 | 自动触发上传，成功后返回 MarkdownV2 详情卡片 |
 
 ## 🛠️ 部署流程
