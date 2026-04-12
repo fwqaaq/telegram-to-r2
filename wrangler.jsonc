@@ -23,8 +23,8 @@
 	 */
 	"r2_buckets": [
 		{
+			"bucket_name": "test-for-telegram-r2",
 			"binding": "R2_BUCKET",
-			"bucket_name": "<BUCKET_NAME>",
 			"remote": true
 		}
 	],
@@ -34,18 +34,18 @@
 	 */
 	// "vars": { "MY_VARIABLE": "production_value" },
 	"vars": {
-		"BOT_TOKEN": "<BOT_TOKEN>",
-		"WEBHOOK_SECRET": "<WEBHOOK_SECRET>",
+		// "BOT_TOKEN": "<BOT_TOKEN>",
+		// "WEBHOOK_SECRET": "<WEBHOOK_SECRET>",
 		"ADMIN_USERNAMES": [
 			"fwqaaq"
 		],
-		"BASE_URL": "<BASE_URL>",
+		"BASE_URL": "https://test-telegram-r2.fwqaaq.com",
 	},
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "<DATABASE_NAME>",
-			"database_id": "<DATABASE_ID>",
+			"database_name": "test_telegram_r2",
+			"database_id": "41c1e967-4abb-4a09-9bfd-95596cda0352",
 		}
 	]
 	/**
