@@ -294,9 +294,12 @@ class FileUploadHandler {
     }
 
     const key = document.file_name || `${document.file_unique_id}`;
+    const file_type = document.mime_type?.startsWith('image/')
+      ? FileType.IMAGES
+      : FileType.DOCUMENTS;
     await this.#uploadFromTelegram(c, {
       file_id: document.file_id,
-      file_type: FileType.DOCUMENTS,
+      file_type,
       key,
       content_type: document.mime_type || 'application/octet-stream',
     });
