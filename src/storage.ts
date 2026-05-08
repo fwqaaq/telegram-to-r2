@@ -99,6 +99,7 @@ export default class StorageManager {
       uploaded: o.uploaded.toLocaleString(),
       author,
       url: this.#base_url.concat(this.#encode_key(o.key)),
+      content_type,
     };
   }
 }

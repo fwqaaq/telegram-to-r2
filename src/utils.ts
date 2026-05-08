@@ -47,6 +47,13 @@ export class MessageFormatter {
     return message;
   }
 
+  /**
+   * 在 MarkdownV2 的 ``` 代码块内，仅需转义反斜杠和反引号。
+   */
+  static escapeCodeBlock(text: string): string {
+    return text.replace(/[`\\]/g, '\\$&');
+  }
+
   static format_upload_success(file: UploadResult): string {
     const size_kb = (file.size / 1024).toFixed(2);
     const dateStr = new Date(file.uploaded).toLocaleString('zh-CN', {
@@ -54,7 +61,7 @@ export class MessageFormatter {
     });
 
     // 这里的样式模仿了“卡片”效果
-    return [
+    const lines = [
       `✅ *文件上传成功*`,
       `━━━━━━━━━━━━━━━━━━━━`,
       `📄 *文件名:* \`${file.key}\``, // 这里的 key 不需要 escape，因为在反引号里
@@ -63,7 +70,15 @@ export class MessageFormatter {
       `🕒 *上传时间:* ${this.escapeMd(dateStr)}`,
       ``,
       `🔗 [点击此处访问文件](${file.url})`, // URL 不需要 escape
-    ].join('\n');
+    ];
+
+    if (file.content_type.startsWith('image/')) {
+      const filename = file.key.split('/').pop() || file.key;
+      const markdown = `![${filename}](${file.url})`;
+      lines.push(``, `📋 *Markdown \\(点击复制\\):*`, `\`\`\``, this.escapeCodeBlock(markdown), `\`\`\``);
+    }
+
+    return lines.join('\n');
   }
 
   static get_help_message(): string {

@@ -50,4 +50,4 @@ export type UploadedFileInfo = {
   author: string;
 };
 
-export type UploadResult = FileInfo;
+export type UploadResult = FileInfo & { content_type: string };
