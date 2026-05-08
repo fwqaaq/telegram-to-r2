@@ -17,6 +17,13 @@ export default class StorageManager {
     return `${author}/${file_type}/${filename}`;
   }
 
+  /**
+   * 按路径分段做 percent-encode，保留 `/` 作为分隔符。
+   */
+  #encode_key(key: string): string {
+    return key.split('/').map(encodeURIComponent).join('/');
+  }
+
   async list_files(
     file_type: FileType,
     target_user: string,
@@ -56,7 +63,7 @@ export default class StorageManager {
           size,
           uploaded: uploaded.toLocaleString(),
           author: customMetadata?.uploadedBy || key.split('/')[0], // extract author from metadata or fallback to the first part of the key
-          url: this.#base_url.concat(encodeURIComponent(key)),
+          url: this.#base_url.concat(this.#encode_key(key)),
         });
       }
       truncated = objects.truncated;
@@ -91,7 +98,7 @@ export default class StorageManager {
       size: o.size,
       uploaded: o.uploaded.toLocaleString(),
       author,
-      url: this.#base_url.concat(encodeURIComponent(o.key)),
+      url: this.#base_url.concat(this.#encode_key(o.key)),
     };
   }
 }
