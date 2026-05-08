@@ -55,9 +55,9 @@ pnpm wrangler login
 
 ```bash
 # 1. 创建 R2 Bucket（示例命令，替换为实际名称）
-npx wrangler r2 bucket create test-for-telegram-r2
+pnpm wrangler r2 bucket create test-for-telegram-r2
 # 2. 创建 D1 数据库
-npx wrangler d1 create test_telegram_r2
+pnpm wrangler d1 create test_telegram_r2
 ```
 
 > ![NOTE]
