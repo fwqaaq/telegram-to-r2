@@ -6,6 +6,12 @@ export interface Env {
   WEBHOOK_SECRET: string;
   ADMIN_USERNAMES: string[];
   DB: D1Database;
+
+  // Optional: Backblaze B2 credentials.
+  // When B2_KEY_ID and B2_APP_KEY are set, B2 is used instead of R2.
+  B2_KEY_ID?: string;
+  B2_APP_KEY?: string;
+  B2_BUCKET_NAME?: string;
 }
 
 export enum FileType {
